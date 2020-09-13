@@ -3,7 +3,7 @@
 ## Services implemented
 * [Register](#register)
 * [Login](#login)
-* [Search products](#search-products)
+* [show products](#show-products)
 * 
 
 ### Register service
@@ -15,4 +15,7 @@
 * url_path : /user/login
 * returns JWT auth string 
 
-### 
+### Show products
+* Requires auth_code in header
+* url_path : /product/show
+* Returns list of products in json format
