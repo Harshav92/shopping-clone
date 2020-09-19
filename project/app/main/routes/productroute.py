@@ -148,6 +148,13 @@ def downvoted():
     resp = downvote(auth_code, data)
     return json.dumps({"msg": resp})
 
+@product.route("/rating", methods=['POST'])
+def ratings():
+    auth_code = request.headers['auth_code']
+    data = request.json
+    resp = add_ratings(auth_code, data)
+    return json.dumps({"msg": resp})
+
 
 
 

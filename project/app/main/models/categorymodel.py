@@ -39,6 +39,7 @@ class Product(db.Model):
     name = db.Column(db.String(200))
     price = db.Column(db.Float)
     owner_id = db.Column(db.Integer, db.ForeignKey("users.id"))
+    rating = db.Column(db.Float)
     
 
 class MetaProduct(db.Model):

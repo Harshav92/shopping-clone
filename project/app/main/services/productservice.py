@@ -84,18 +84,19 @@ def edit_product(auth_head, data):
 
 def product_show(auth_head, page, items_page):
     try:
+        
+        auth_code = jwt.decode(auth_head, current_app.config["SECRET_KEY"])
         if auth_code == None:
             return "401 invalid auth"
-        auth_code = jwt.decode(auth_head, current_app.config["SECRET_KEY"])
         if auth_code['time'] <= time.time():
             return "time expired login again"
         start = (page-1)*items_page
         end = page*items_page
         ls = []
         if auth_code['role'] == "owner":
-            query = "select avg(r.rating) as stars, p.name as name, mp.image1_url as image , p.id as prod_id, mp.inventory_count as quantity  from products as p join products_meta as mp on mp.product_id=p.id join ratings as r on r.product_id = p.id group by p.id order by p.id where p.owner_id = {} limit {},{};".format(auth_code['user_id'],start,end)
+            query = "select  p.name as name, mp.image1_url as image ,floor(p.rating) as rating, p.id as prod_id, mp.inventory_count as quantity  from products as p join products_meta as mp on mp.product_id=p.id  order by p.id where p.owner_id = {} limit {},{};".format(auth_code['user_id'],start,end)
         else:
-            query = "select avg(r.rating) as stars, p.name as name, mp.image1_url as image , p.id as prod_id, mp.inventory_count as quantity from products as p join products_meta as mp on mp.product_id=p.id join ratings as r on r.product_id = p.id group by p.id order by p.id  limit {},{};".format(start,end)
+            query = "select  p.name as name, mp.image1_url as image ,floor(p.rating) as rating, p.id as prod_id, mp.inventory_count as quantity from products as p join products_meta as mp on mp.product_id=p.id  order by p.id  limit {},{};".format(start,end)
             
         data = db.session.execute(query)
         for each in data:
@@ -105,7 +106,7 @@ def product_show(auth_head, page, items_page):
             row['image1_url'] = each.image
             row['quantity'] = each.quantity
             row['name'] = each.name
-            row['rating'] = int(each.stars)
+            row['rating'] = each.rating
             ls.append(row)
 
         return ls
@@ -183,7 +184,7 @@ def prod_search(auth_head,cat,page ):
         return "user not allowed "
     start = (page-1)*3
     end = page*3
-    query = "select avg(r.rating) as stars ,p.name as name, p.price as price,p.id as id , mp.image1_url as image, mp.inventory_count as quantity from products as p join product_categories as pc on pc.product_id = p.id join categories as c  on c.id = pc.category_id join products_meta as mp on mp.product_id=p.id  join ratings as r on r.product_id=p.id where c.name like '%{}%' group by p.id order by p.id limit {}, {} ;".format(cat,start,end)
+    query = "p.name as name, p.price as price,p.id as id ,floor(p.rating) as rating, mp.image1_url as image, mp.inventory_count as quantity from products as p join product_categories as pc on pc.product_id = p.id join categories as c  on c.id = pc.category_id join products_meta as mp on mp.product_id=p.id  where c.name like '%{}%'  order by p.id limit {}, {} ;".format(cat,start,end)
     prod = db.session.execute(query)
     ls = []
     for each in prod:
@@ -193,7 +194,7 @@ def prod_search(auth_head,cat,page ):
         row['price'] = each.price
         row['image'] = each.image
         row['quantity'] = each.quantity
-        row['rating'] = int(each.stars) 
+        row['rating'] = each.rating
         
         ls.append(row)
     if len(ls)==0:
@@ -537,15 +538,25 @@ def add_ratings(auth_head, data):
         return "invalid product id"
     rate = Rating.query.filter_by(product_id=product_id, user_id=user_id).first()
     if rate == None:
-        row = Ratings()
+        row = Rating()
         row.user_id = user_id
         row.product_id = product_id
         row.rating = rating
+        if prod.rating == None:
+            prod.rating = rating
+        else:
+            count = db.session.execute("select count(*) from ratings where product_id = product_id ;").scalar()
+            prod.rating = ((count*prod.rating)+rating)/count+1
+
         db.session.add(row)
         db.session.commit()
         return "rating added"
     else:
+        count = db.session.execute("select count(*) from ratings where product_id = product_id ;").scalar()
+        
+        new_rating = (((prod.rating)*count)-rate.rating+rating)/count
         rate.rating = rating
+        prod.rating = new_rating
         db.session.commit()
         return "rating edited"
 
