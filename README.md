@@ -1,4 +1,9 @@
 # Shopping-clone Back-end web services implementation
+## Description
+
+Project is a clone of Web Api's of online shopping like FLIPKART
+Implemented using python(Flask),MySQL is used for DataBase.
+JWT is used for authentication.
 
 ## Services implemented
 * [Register](#register)
